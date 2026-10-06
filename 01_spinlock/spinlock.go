@@ -1,21 +1,32 @@
 package spinlock
 
-import "sync/atomic"
+import (
+	"runtime"
+	"sync/atomic"
+)
 
 type Spinlock struct {
 	locked atomic.Bool
 }
 
 func (s *Spinlock) Lock() {
-	panic("не реализовано")
+	if s.locked.CompareAndSwap(false, true) == false {
+		for !s.TryLock() {
+			runtime.Gosched()
+		}
+	} else {
+		return
+	}
 }
 
 func (s *Spinlock) TryLock() bool {
-	panic("не реализовано")
+	return s.locked.CompareAndSwap(false, true)
 }
 
 func (s *Spinlock) Unlock() {
-	panic("не реализовано")
+	if !s.locked.CompareAndSwap(true, false) {
+		panic("a")
+	}
 }
 
 type TTAS struct {
@@ -23,13 +34,24 @@ type TTAS struct {
 }
 
 func (s *TTAS) Lock() {
-	panic("не реализовано")
+	for {
+		if s.locked.Load() {
+			runtime.Gosched()
+			continue
+		}
+		if s.TryLock() {
+			return
+		}
+		runtime.Gosched()
+	}
 }
 
 func (s *TTAS) TryLock() bool {
-	panic("не реализовано")
+	return s.locked.CompareAndSwap(false, true)
 }
 
 func (s *TTAS) Unlock() {
-	panic("не реализовано")
+	if !s.locked.CompareAndSwap(true, false) {
+		panic("a")
+	}
 }
